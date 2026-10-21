@@ -93,8 +93,8 @@ class JogoDAO
         $params = [];
 
         if (!empty($f['busca'])) {
-            $where[] = 'LOWER(p.nome) LIKE ?';
-            $params[] = '%' . mb_strtolower($f['busca']) . '%';
+            $where[] = 'LOWER(p.nome) LIKE LOWER(?)';
+            $params[] = '%' . $f['busca'] . '%';
         }
         if (!empty($f['categoria'])) {
             $where[] = 'EXISTS (SELECT 1 FROM produto_categoria pc WHERE pc.produto_id = p.id AND pc.categoria_id = ?)';
@@ -184,8 +184,8 @@ class JogoDAO
         $where = 'p.deleted_at IS NULL';
         $params = [];
         if ($busca !== '') {
-            $where .= ' AND LOWER(p.nome) LIKE ?';
-            $params[] = '%' . mb_strtolower($busca) . '%';
+            $where .= ' AND LOWER(p.nome) LIKE LOWER(?)';
+            $params[] = '%' . $busca . '%';
         }
         return $this->consultar($where, $params, 'j.nome ASC');
     }
