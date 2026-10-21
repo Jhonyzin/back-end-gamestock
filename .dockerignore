@@ -1,0 +1,9 @@
+# Não copiar para a imagem Docker
+.env
+.git
+Dockerfile
+.dockerignore
+uploads/perfis/*
+uploads/jogos/*
+!uploads/perfis/.gitkeep
+!uploads/jogos/.gitkeep

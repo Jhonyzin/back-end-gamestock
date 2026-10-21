@@ -1,0 +1,24 @@
+# GameStock - configuração do Apache para a API
+Options -Indexes
+
+# Nunca entregar o arquivo .env (credenciais) nem arquivos ocultos
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Repassa o cabeçalho Authorization (token) para o PHP
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # As pastas de código não podem ser acessadas direto pelo navegador
+    RewriteRule ^(config|core|controllers|dao|models|routes)(/|$) - [F,L]
+
+    # Arquivos que existem (ex.: imagens em uploads/) são entregues normalmente;
+    # todo o resto vai para o index.php (o roteador decide)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
