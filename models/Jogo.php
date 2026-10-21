@@ -39,8 +39,8 @@ class Jogo
         $j->slug                = $l['slug'];
         $j->descricaoCurta      = $l['descricao_curta'];
         $j->capa                = $l['capa'] ?? null;
-        $j->categorias          = $l['categorias'] ? explode('||', $l['categorias']) : [];
-        $j->plataformas         = $l['plataformas'] ? explode('||', $l['plataformas']) : [];
+        $j->categorias          = $l['categorias'] ?? [];
+        $j->plataformas         = $l['plataformas'] ?? [];
         $j->precoBase           = (float) $l['preco_base'];
         $j->precoFinal          = (float) $l['preco_final'];
         $j->percentual          = (float) $l['percentual'];

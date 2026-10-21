@@ -3,11 +3,12 @@
 /**
  * DAO de jogos (tabela "produtos" + view "vw_precos_jogos").
  * Toda listagem usa a view, então o preço já vem com a promoção ativa.
+ * O SQL é "padrão": funciona no PostgreSQL e no MySQL.
  */
 class JogoDAO
 {
     // SELECT usado por todas as listagens: dados do jogo + preço + capa
-    // + categorias + plataformas + nota média + vendas
+    // + nota média + vendas (categorias e plataformas vêm em outra consulta)
     private const SELECT_BASE = "
         SELECT p.*,
                v.preco_base, v.preco_final, v.percentual,
@@ -16,12 +17,6 @@ class JogoDAO
                (SELECT i.caminho_url FROM produto_imagens i
                  WHERE i.produto_id = p.id AND i.tipo = 'CAPA' AND i.ativo = 1
                  ORDER BY i.principal DESC, i.ordem, i.id LIMIT 1) AS capa,
-               (SELECT GROUP_CONCAT(c.nome ORDER BY c.nome SEPARATOR '||')
-                  FROM produto_categoria pc JOIN categorias c ON c.id = pc.categoria_id
-                 WHERE pc.produto_id = p.id) AS categorias,
-               (SELECT GROUP_CONCAT(pl.nome ORDER BY pl.id SEPARATOR '||')
-                  FROM produto_plataforma pp JOIN plataformas pl ON pl.id = pp.plataforma_id
-                 WHERE pp.produto_id = p.id) AS plataformas,
                (SELECT ROUND(AVG(a.nota), 1) FROM avaliacoes a WHERE a.produto_id = p.id) AS nota_media,
                (SELECT COUNT(*) FROM avaliacoes a WHERE a.produto_id = p.id) AS total_avaliacoes,
                (SELECT COUNT(*) FROM avaliacoes a WHERE a.produto_id = p.id AND a.nota >= 4) AS avaliacoes_positivas,
@@ -33,30 +28,74 @@ class JogoDAO
           LEFT JOIN editoras e ON e.id = p.editora_id
     ";
 
-    // Ordenações permitidas na loja (nunca colocamos texto do usuário no ORDER BY)
+    // Ordenações permitidas na loja (nunca colocamos texto do usuário no ORDER BY).
+    // "j" é a consulta base embrulhada (ver consultar); "IS NULL" joga os vazios para o fim.
     private const ORDENS = [
-        'populares'   => 'vendas DESC, p.popular DESC, p.destaque DESC, p.nome ASC',
-        'preco-asc'   => 'v.preco_final ASC, p.nome ASC',
-        'preco-desc'  => 'v.preco_final DESC, p.nome ASC',
-        'avaliacao'   => 'nota_media DESC, total_avaliacoes DESC, p.nome ASC',
-        'lancamentos' => 'p.ano_lancamento DESC, p.data_cadastro DESC, p.id DESC',
-        'nome'        => 'p.nome ASC',
+        'populares'   => 'j.vendas DESC, j.popular DESC, j.destaque DESC, j.nome ASC',
+        'preco-asc'   => 'j.preco_final ASC, j.nome ASC',
+        'preco-desc'  => 'j.preco_final DESC, j.nome ASC',
+        'avaliacao'   => 'j.nota_media IS NULL, j.nota_media DESC, j.total_avaliacoes DESC, j.nome ASC',
+        'lancamentos' => 'j.ano_lancamento IS NULL, j.ano_lancamento DESC, j.data_cadastro DESC, j.id DESC',
+        'nome'        => 'j.nome ASC',
     ];
 
     public function __construct(private PDO $pdo)
     {
     }
 
-    // Executa o SELECT_BASE com filtros e devolve objetos Jogo
+    // Executa o SELECT_BASE com filtros e devolve objetos Jogo.
+    // A consulta fica "embrulhada" (SELECT * FROM (...) j) para poder ordenar
+    // pelas colunas calculadas (vendas, nota_media) no PostgreSQL e no MySQL.
     private function consultar(string $where, array $params, string $ordem, int $limite = 0, int $offset = 0): array
     {
-        $sql = self::SELECT_BASE . " WHERE {$where} ORDER BY {$ordem}";
+        $sql = 'SELECT * FROM (' . self::SELECT_BASE . " WHERE {$where}) j ORDER BY {$ordem}";
         if ($limite > 0) {
             $sql .= ' LIMIT ' . (int) $limite . ' OFFSET ' . (int) $offset;
         }
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
-        return array_map(fn ($linha) => Jogo::deLinha($linha), $stmt->fetchAll());
+        $linhas = $this->adicionarListas($stmt->fetchAll());
+        return array_map(fn ($linha) => Jogo::deLinha($linha), $linhas);
+    }
+
+    // Busca categorias e plataformas de vários jogos de uma vez só
+    // e coloca em cada linha como lista: ['categorias' => ['RPG'], ...]
+    private function adicionarListas(array $linhas): array
+    {
+        if (!$linhas) {
+            return [];
+        }
+        $ids = array_map(fn ($l) => (int) $l['id'], $linhas);
+        $marcadores = implode(',', array_fill(0, count($ids), '?'));
+
+        $categorias = [];
+        $stmt = $this->pdo->prepare(
+            "SELECT pc.produto_id, c.nome FROM produto_categoria pc
+               JOIN categorias c ON c.id = pc.categoria_id
+              WHERE pc.produto_id IN ({$marcadores}) ORDER BY c.nome"
+        );
+        $stmt->execute($ids);
+        foreach ($stmt->fetchAll() as $l) {
+            $categorias[(int) $l['produto_id']][] = $l['nome'];
+        }
+
+        $plataformas = [];
+        $stmt = $this->pdo->prepare(
+            "SELECT pp.produto_id, pl.nome FROM produto_plataforma pp
+               JOIN plataformas pl ON pl.id = pp.plataforma_id
+              WHERE pp.produto_id IN ({$marcadores}) ORDER BY pl.id"
+        );
+        $stmt->execute($ids);
+        foreach ($stmt->fetchAll() as $l) {
+            $plataformas[(int) $l['produto_id']][] = $l['nome'];
+        }
+
+        foreach ($linhas as &$linha) {
+            $linha['categorias'] = $categorias[(int) $linha['id']] ?? [];
+            $linha['plataformas'] = $plataformas[(int) $linha['id']] ?? [];
+        }
+        unset($linha);
+        return $linhas;
     }
 
     // Monta o WHERE da loja a partir dos filtros da URL
@@ -66,8 +105,8 @@ class JogoDAO
         $params = [];
 
         if (!empty($f['busca'])) {
-            $where[] = 'p.nome LIKE ?';
-            $params[] = '%' . $f['busca'] . '%';
+            $where[] = 'LOWER(p.nome) LIKE ?';   // sem diferenciar maiúsculas
+            $params[] = '%' . mb_strtolower($f['busca']) . '%';
         }
         if (!empty($f['categoria'])) {
             $where[] = 'EXISTS (SELECT 1 FROM produto_categoria pc WHERE pc.produto_id = p.id AND pc.categoria_id = ?)';
@@ -113,13 +152,13 @@ class JogoDAO
 
     public function destaques(): array
     {
-        return $this->consultar('p.deleted_at IS NULL AND p.ativo = 1 AND p.destaque = 1', [], 'p.id', 10);
+        return $this->consultar('p.deleted_at IS NULL AND p.ativo = 1 AND p.destaque = 1', [], 'j.id', 10);
     }
 
     public function emPromocao(int $limite): array
     {
         return $this->consultar('p.deleted_at IS NULL AND p.ativo = 1 AND v.percentual > 0', [],
-            'v.percentual DESC, v.promocao_fim ASC, p.nome ASC', $limite);
+            'j.percentual DESC, j.promocao_fim ASC, j.nome ASC', $limite);
     }
 
     public function maisVendidos(int $limite): array
@@ -138,7 +177,8 @@ class JogoDAO
         $where = 'p.id = ? AND p.deleted_at IS NULL' . ($somenteAtivos ? ' AND p.ativo = 1' : '');
         $stmt = $this->pdo->prepare(self::SELECT_BASE . " WHERE {$where}");
         $stmt->execute([$id]);
-        return $stmt->fetch() ?: null;
+        $linha = $stmt->fetch();
+        return $linha ? $this->adicionarListas([$linha])[0] : null;
     }
 
     // 3 jogos da mesma categoria ou da mesma editora
@@ -150,7 +190,7 @@ class JogoDAO
                                AND pc.categoria_id IN (SELECT categoria_id FROM produto_categoria WHERE produto_id = ?))
                     OR (p.editora_id IS NOT NULL AND p.editora_id = (SELECT editora_id FROM produtos WHERE id = ?))
                   )";
-        return $this->consultar($where, [$id, $id, $id], 'vendas DESC, p.popular DESC, p.id ASC', 3);
+        return $this->consultar($where, [$id, $id, $id], 'j.vendas DESC, j.popular DESC, j.id ASC', 3);
     }
 
     // ---------- Admin ----------
@@ -160,10 +200,10 @@ class JogoDAO
         $where = 'p.deleted_at IS NULL';
         $params = [];
         if ($busca !== '') {
-            $where .= ' AND p.nome LIKE ?';
-            $params[] = "%{$busca}%";
+            $where .= ' AND LOWER(p.nome) LIKE ?';
+            $params[] = '%' . mb_strtolower($busca) . '%';
         }
-        return $this->consultar($where, $params, 'p.nome ASC');
+        return $this->consultar($where, $params, 'j.nome ASC');
     }
 
     public function idsCategorias(int $id): array

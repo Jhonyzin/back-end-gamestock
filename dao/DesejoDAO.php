@@ -17,10 +17,14 @@ class DesejoDAO
         return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
     }
 
-    // INSERT IGNORE: se já estiver na lista, não faz nada
+    // Se já estiver na lista, não faz nada
     public function adicionar(int $usuarioId, int $produtoId): void
     {
-        $this->pdo->prepare('INSERT IGNORE INTO wishlist (usuario_id, produto_id) VALUES (?, ?)')->execute([$usuarioId, $produtoId]);
+        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM wishlist WHERE usuario_id = ? AND produto_id = ?');
+        $stmt->execute([$usuarioId, $produtoId]);
+        if ((int) $stmt->fetchColumn() === 0) {
+            $this->pdo->prepare('INSERT INTO wishlist (usuario_id, produto_id) VALUES (?, ?)')->execute([$usuarioId, $produtoId]);
+        }
     }
 
     public function remover(int $usuarioId, int $produtoId): void

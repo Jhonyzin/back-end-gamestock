@@ -37,9 +37,6 @@ class BibliotecaDAO
                     (SELECT i.caminho_url FROM produto_imagens i
                       WHERE i.produto_id = pr.id AND i.tipo = 'CAPA' AND i.ativo = 1
                       ORDER BY i.principal DESC, i.ordem, i.id LIMIT 1) AS capa,
-                    (SELECT GROUP_CONCAT(c.nome ORDER BY c.nome SEPARATOR '||')
-                       FROM produto_categoria pc JOIN categorias c ON c.id = pc.categoria_id
-                      WHERE pc.produto_id = pr.id) AS categorias,
                     it.id AS item_id, it.preco_unitario AS preco_pago, pg.metodo
                FROM biblioteca b
                JOIN produtos pr ON pr.id = b.produto_id
@@ -53,6 +50,24 @@ class BibliotecaDAO
               ORDER BY b.data_aquisicao DESC, b.id DESC"
         );
         $stmt->execute([$usuarioId]);
-        return $stmt->fetchAll();
+        $linhas = $stmt->fetchAll();
+
+        // categorias de todos os jogos da biblioteca em uma consulta só
+        $categorias = [];
+        $stmt = $this->pdo->prepare(
+            'SELECT pc.produto_id, c.nome FROM produto_categoria pc
+               JOIN categorias c ON c.id = pc.categoria_id
+               JOIN biblioteca b ON b.produto_id = pc.produto_id
+              WHERE b.usuario_id = ? ORDER BY c.nome'
+        );
+        $stmt->execute([$usuarioId]);
+        foreach ($stmt->fetchAll() as $l) {
+            $categorias[(int) $l['produto_id']][] = $l['nome'];
+        }
+        foreach ($linhas as &$linha) {
+            $linha['categorias'] = $categorias[(int) $linha['produto_id']] ?? [];
+        }
+        unset($linha);
+        return $linhas;
     }
 }

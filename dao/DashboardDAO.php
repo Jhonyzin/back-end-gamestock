@@ -14,9 +14,9 @@ class DashboardDAO
     {
         $l = $this->pdo->query(
             'SELECT COUNT(*) AS total,
-                    COALESCE(SUM(estoque > 5), 0)              AS em_estoque,
-                    COALESCE(SUM(estoque BETWEEN 1 AND 5), 0)  AS estoque_baixo,
-                    COALESCE(SUM(estoque = 0), 0)              AS esgotados
+                    COALESCE(SUM(CASE WHEN estoque > 5 THEN 1 ELSE 0 END), 0)             AS em_estoque,
+                    COALESCE(SUM(CASE WHEN estoque BETWEEN 1 AND 5 THEN 1 ELSE 0 END), 0) AS estoque_baixo,
+                    COALESCE(SUM(CASE WHEN estoque = 0 THEN 1 ELSE 0 END), 0)             AS esgotados
                FROM produtos
               WHERE deleted_at IS NULL'
         )->fetch();
@@ -41,20 +41,23 @@ class DashboardDAO
     // Últimos 30 dias, incluindo os dias sem venda (com zero)
     public function vendasPorDia(int $dias = 30): array
     {
+        // primeiro dia do período (calculado no PHP, igual nos dois bancos)
+        $hoje = new DateTime('today');
+        $inicio = (clone $hoje)->modify('-' . ($dias - 1) . ' day')->format('Y-m-d 00:00:00');
+
         $stmt = $this->pdo->prepare(
-            "SELECT DATE(data_criacao) AS dia, COUNT(*) AS pedidos, SUM(valor_total) AS total
+            "SELECT CAST(data_criacao AS DATE) AS dia, COUNT(*) AS pedidos, SUM(valor_total) AS total
                FROM pedidos
-              WHERE status = 'CONCLUIDO' AND data_criacao >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
-              GROUP BY DATE(data_criacao)"
+              WHERE status = 'CONCLUIDO' AND data_criacao >= ?
+              GROUP BY CAST(data_criacao AS DATE)"
         );
-        $stmt->execute([$dias - 1]);
+        $stmt->execute([$inicio]);
         $porDia = [];
         foreach ($stmt->fetchAll() as $l) {
-            $porDia[$l['dia']] = $l;
+            $porDia[substr($l['dia'], 0, 10)] = $l;
         }
 
-        // gera a lista de dias a partir da data do próprio banco
-        $hoje = new DateTime($this->pdo->query('SELECT CURDATE()')->fetchColumn());
+        // gera a lista de dias (inclusive os sem venda)
         $resultado = [];
         for ($i = $dias - 1; $i >= 0; $i--) {
             $dia = (clone $hoje)->modify("-{$i} day")->format('Y-m-d');

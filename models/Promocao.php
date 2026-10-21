@@ -25,7 +25,7 @@ class Promocao
         $p->dataInicio = $l['data_inicio'];
         $p->dataFim    = $l['data_fim'];
         $p->ativo      = (bool) $l['ativo'];
-        $p->jogos      = !empty($l['jogos']) ? array_map('intval', explode(',', $l['jogos'])) : [];
+        $p->jogos      = $l['jogos'] ?? [];
         return $p;
     }
 

@@ -79,8 +79,9 @@ class UsuarioDAO
                  WHERE u.deleted_at IS NULL';
         $params = [];
         if ($busca !== '') {
-            $sql .= ' AND (u.nome LIKE ? OR u.email LIKE ?)';
-            $params = ["%{$busca}%", "%{$busca}%"];
+            $sql .= ' AND (LOWER(u.nome) LIKE ? OR LOWER(u.email) LIKE ?)';
+            $termo = '%' . mb_strtolower($busca) . '%';
+            $params = [$termo, $termo];
         }
         $stmt = $this->pdo->prepare($sql . ' ORDER BY u.id');
         $stmt->execute($params);

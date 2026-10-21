@@ -9,12 +9,12 @@ class SessaoDAO
     {
     }
 
+    // A data de validade é calculada no PHP (funciona igual no PostgreSQL e no MySQL)
     public function criar(int $usuarioId, string $tokenHash, int $dias): void
     {
-        $stmt = $this->pdo->prepare(
-            'INSERT INTO sessoes (usuario_id, token_hash, expira_em) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL ? DAY))'
-        );
-        $stmt->execute([$usuarioId, $tokenHash, $dias]);
+        $expira = date('Y-m-d H:i:s', strtotime("+{$dias} days"));
+        $stmt = $this->pdo->prepare('INSERT INTO sessoes (usuario_id, token_hash, expira_em) VALUES (?, ?, ?)');
+        $stmt->execute([$usuarioId, $tokenHash, $expira]);
     }
 
     // Usuário dono do token, se a sessão ainda vale e a conta está ativa

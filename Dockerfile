@@ -5,8 +5,11 @@
 # =========================================================
 FROM php:8.3-apache
 
-# Extensão do MySQL para o PDO (o "pdo" já vem na imagem)
-RUN docker-php-ext-install pdo_mysql
+# Extensões do PDO: PostgreSQL (banco do Render) e MySQL (XAMPP)
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libpq-dev \
+    && docker-php-ext-install pdo_pgsql pdo_mysql \
+    && rm -rf /var/lib/apt/lists/*
 
 # mod_rewrite (rotas pelo .htaccess) e mod_headers
 RUN a2enmod rewrite headers

@@ -14,7 +14,7 @@ class CupomDAO
     {
         $stmt = $this->pdo->prepare(
             'SELECT id, codigo, percentual_desconto FROM cupons
-              WHERE codigo = ? AND ativo = 1 AND (validade IS NULL OR validade >= CURDATE())'
+              WHERE codigo = ? AND ativo = 1 AND (validade IS NULL OR validade >= CURRENT_DATE)'
         );
         $stmt->execute([strtoupper(trim($codigo))]);
         return $stmt->fetch() ?: null;

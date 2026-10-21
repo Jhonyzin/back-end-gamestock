@@ -1,31 +1,42 @@
-# GameStock — Back-end no Render (PHP 8 + Docker)
+# GameStock — Back-end no Render (PHP 8 + Docker + PostgreSQL)
 
-API REST em PHP puro (POO + MVC + DAO + PDO). O Render não roda PHP nativamente, então este back-end sobe como **Web Service com Docker** usando o `Dockerfile` desta pasta (`php:8.3-apache`).
+API REST em PHP puro (POO + MVC + DAO + PDO). O Render não roda PHP nativamente, então este back-end sobe como **Web Service com Docker**, usando o `Dockerfile` desta pasta (`php:8.3-apache` com `pdo_pgsql`).
 
-## Publicar
-1. Suba esta pasta para um repositório no GitHub (pode ser o repositório inteiro do projeto).
-2. No Render: **New → Web Service** → escolha o repositório.
-   - **Language / Runtime:** Docker
-   - **Root Directory:** `back-end` (se o repositório tiver as três pastas)
+O banco é o **PostgreSQL do Render** (o mesmo que você administra pelo pgAdmin). O código também funciona com MySQL no XAMPP: quem escolhe é a variável `DB_DRIVER`.
+
+## 1. Criar as tabelas (pgAdmin)
+1. No Render, abra o seu PostgreSQL → **Connections** e copie: Hostname (externo), Port, Database, Username e Password.
+2. No pgAdmin: **Register → Server** → aba *Connection* com esses dados; aba *Parameters/SSL* → **SSL mode = require**.
+3. Abra o banco → **Query Tool** e rode, nesta ordem, os arquivos do repositório/pasta `data-base`:
+   `01_estrutura.sql` → `02_dados_iniciais.sql` → `03_dados_demo.sql` (o `00` não é necessário no Render).
+
+## 2. Criar o Web Service
+1. No Render: **New → Web Service**.
+   - Se o repositório não aparecer na lista, use a aba **Public Git Repository** e cole `https://github.com/Jhonyzin/back-end-gamestock`.
+2. Configure:
+   - **Language:** `Docker`
+   - **Branch:** `main`
+   - **Region:** a **mesma** do seu PostgreSQL (para usar a URL interna)
+   - **Root Directory:** deixe **vazio** (o `Dockerfile` está na raiz deste repositório)
    - **Dockerfile Path:** `./Dockerfile`
-3. Em **Environment → Environment Variables**, cadastre (veja `.env.example`):
+   - **Instance Type:** Free
+3. Em **Environment Variables**, cadastre:
 
-| Variável | Exemplo | Observação |
-|---|---|---|
-| `DB_HOST` | `meu-mysql.provedor.com` | MySQL **externo** (o Render não tem MySQL gerenciado) |
-| `DB_PORT` | `3306` | |
-| `DB_NAME` | `gamestock` | |
-| `DB_USER` / `DB_PASS` | — | credenciais do seu MySQL |
-| `DB_SSL` | `true` ou `false` | alguns provedores exigem SSL |
-| `FRONTEND_URL` | `https://gamestock.onrender.com` | endereço do Static Site (CORS) |
-| `APP_DEBUG` | `false` | |
+| Variável | Valor |
+|---|---|
+| `DATABASE_URL` | a **Internal Database URL** do seu PostgreSQL (Render → banco → Connections) |
+| `FRONTEND_URL` | endereço do front, ex.: `https://front-end-gamestock.onrender.com` |
+| `APP_DEBUG` | `true` no primeiro teste (mostra o erro detalhado); depois troque para `false` |
 
-   O Render já define `PORT` (o Apache usa essa porta automaticamente).
-4. Depois do deploy, teste: `https://SEU-BACKEND.onrender.com/api` (status) e `.../api/jogos`.
-5. Crie as tabelas rodando os arquivos da pasta `data-base/` no seu MySQL (ver o README de lá).
+   Com `DATABASE_URL` preenchida não é preciso `DB_HOST`, `DB_USER` etc. O Render define `PORT` sozinho.
+4. **Create Web Service** e espere o deploy terminar (aba **Logs**).
 
-## ⚠️ Disco efêmero
-O disco do plano gratuito do Render é **apagado a cada novo deploy**: fotos de perfil e imagens de jogos **enviadas pelo site** (pasta `uploads/`) somem. Para imagens permanentes, use **URL externa** (`https://...`) no painel admin, ou coloque as capas no front-end (`front-end/public/capas/{id}.jpg`).
+## 3. Testar
+- `https://SEU-BACKEND.onrender.com/api` → `{"sucesso":true,"dados":{"api":"GameStock 2025","status":"online",...}}`
+- `https://SEU-BACKEND.onrender.com/api/jogos` → lista de jogos (se der erro de banco, confira a `DATABASE_URL`).
+- Depois, no Static Site do front: `VITE_API_URL=https://SEU-BACKEND.onrender.com/api` e **Manual Deploy → Clear build cache & deploy**.
 
-## Estrutura
-Igual à versão XAMPP: `index.php` (front controller), `routes/api.php`, `controllers/`, `models/`, `dao/`, `core/`, `config/Bancodados.php`. Detalhes de segurança e do formato das respostas: veja `DECISOES.md` e o README principal do projeto.
+## Avisos
+- **Plano gratuito:** o serviço "dorme" sem uso; o primeiro acesso pode levar ~1 minuto.
+- **Disco efêmero:** imagens enviadas pelo site (pasta `uploads/`) somem a cada novo deploy. Para imagens permanentes, use **URL externa** no painel admin ou coloque as capas no front (`public/capas/{id}.jpg`).
+- Senhas de teste (`Admin@123`, `Jogador@123`): troque antes de divulgar o site.

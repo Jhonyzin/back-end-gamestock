@@ -14,7 +14,7 @@ class CompraController extends Controller
             'nome'           => $l['nome'],
             'slug'           => $l['slug'],
             'capa'           => $l['capa'],
-            'categorias'     => $l['categorias'] ? explode('||', $l['categorias']) : [],
+            'categorias'     => $l['categorias'],
             'data_aquisicao' => $l['data_aquisicao'],
             'origem'         => $l['origem'],
             'item_id'        => $l['item_id'] ? (int) $l['item_id'] : null,

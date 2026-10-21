@@ -5,28 +5,36 @@
  */
 class PromocaoDAO
 {
-    private const SELECT_BASE = "
-        SELECT pr.*,
-               (SELECT GROUP_CONCAT(pp.produto_id) FROM promocao_produto pp WHERE pp.promocao_id = pr.id) AS jogos
-          FROM promocoes pr
-    ";
-
     public function __construct(private PDO $pdo)
     {
     }
 
+    // ids dos jogos de cada promoção: [promocao_id => [1, 2, 3]]
+    private function jogosPorPromocao(): array
+    {
+        $mapa = [];
+        foreach ($this->pdo->query('SELECT promocao_id, produto_id FROM promocao_produto ORDER BY produto_id')->fetchAll() as $l) {
+            $mapa[(int) $l['promocao_id']][] = (int) $l['produto_id'];
+        }
+        return $mapa;
+    }
+
     public function listar(): array
     {
-        $stmt = $this->pdo->query(self::SELECT_BASE . ' ORDER BY pr.ativo DESC, pr.data_fim DESC, pr.id DESC');
-        return array_map(fn ($l) => Promocao::deLinha($l), $stmt->fetchAll());
+        $jogos = $this->jogosPorPromocao();
+        $stmt = $this->pdo->query('SELECT * FROM promocoes ORDER BY ativo DESC, data_fim DESC, id DESC');
+        return array_map(fn ($l) => Promocao::deLinha($l + ['jogos' => $jogos[(int) $l['id']] ?? []]), $stmt->fetchAll());
     }
 
     public function buscar(int $id): ?Promocao
     {
-        $stmt = $this->pdo->prepare(self::SELECT_BASE . ' WHERE pr.id = ?');
+        $stmt = $this->pdo->prepare('SELECT * FROM promocoes WHERE id = ?');
         $stmt->execute([$id]);
         $linha = $stmt->fetch();
-        return $linha ? Promocao::deLinha($linha) : null;
+        if (!$linha) {
+            return null;
+        }
+        return Promocao::deLinha($linha + ['jogos' => $this->jogosPorPromocao()[$id] ?? []]);
     }
 
     public function criar(array $d, int $criadoPor): int

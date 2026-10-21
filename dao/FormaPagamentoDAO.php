@@ -66,8 +66,12 @@ class FormaPagamentoDAO
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM formas_pagamento WHERE usuario_id = ? AND ativo = 1 AND padrao = 1');
         $stmt->execute([$usuarioId]);
         if ((int) $stmt->fetchColumn() === 0) {
-            $this->pdo->prepare('UPDATE formas_pagamento SET padrao = 1 WHERE usuario_id = ? AND ativo = 1 ORDER BY id DESC LIMIT 1')
-                ->execute([$usuarioId]);
+            $stmt = $this->pdo->prepare('SELECT id FROM formas_pagamento WHERE usuario_id = ? AND ativo = 1 ORDER BY id DESC LIMIT 1');
+            $stmt->execute([$usuarioId]);
+            $id = $stmt->fetchColumn();
+            if ($id) {
+                $this->pdo->prepare('UPDATE formas_pagamento SET padrao = 1 WHERE id = ?')->execute([$id]);
+            }
         }
     }
 }
