@@ -1,4 +1,3 @@
-# Não copiar para a imagem Docker
 .env
 .git
 Dockerfile

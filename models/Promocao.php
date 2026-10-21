@@ -1,9 +1,5 @@
 <?php
 
-/**
- * MODEL Promocao: desconto em % aplicado a uma lista de jogos
- * durante um período (data_inicio até data_fim).
- */
 class Promocao
 {
     public int $id;
@@ -13,7 +9,7 @@ class Promocao
     public string $dataInicio;
     public string $dataFim;
     public bool $ativo;
-    public array $jogos = [];   // ids dos jogos
+    public array $jogos = [];
 
     public static function deLinha(array $l): self
     {
@@ -29,7 +25,6 @@ class Promocao
         return $p;
     }
 
-    // Situação para mostrar no painel
     public function situacao(): string
     {
         $agora = date('Y-m-d H:i:s');

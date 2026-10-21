@@ -1,21 +1,11 @@
 <?php
 
-/**
- * CONTROLLER da compra simulada (POST /checkout).
- * Tudo acontece dentro de UMA transação: se qualquer passo falhar,
- * o ROLLBACK desfaz tudo (nenhum pedido "pela metade").
- */
 class CheckoutController extends Controller
 {
     private const METODOS = ['PIX', 'CARTAO_CREDITO', 'CARTAO_DEBITO', 'BOLETO'];
 
-    // Letras e números sem 0, O, 1 e I (evita confusão na hora de digitar)
     private const ALFABETO_CODIGO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
-    /**
-     * Entrada: { itens: [jogoId...], cupom?, metodo, parcelas?,
-     *            forma_pagamento_id? | cartao?: {numero, titular, validade, cvv, salvar?} }
-     */
     public function finalizar(Request $req): void
     {
         $usuario = $req->usuario;
@@ -23,9 +13,8 @@ class CheckoutController extends Controller
         if (!$ids) {
             throw new ErroApi('Seu carrinho está vazio.', 422);
         }
-        sort($ids);   // trava as linhas sempre na mesma ordem (evita deadlock)
+        sort($ids);
 
-        // Cupom (opcional)
         $cupom = null;
         $codigoCupom = (string) $req->input('cupom', '');
         if ($codigoCupom !== '') {
@@ -41,8 +30,8 @@ class CheckoutController extends Controller
 
         $this->pdo->beginTransaction();
         try {
-            // 1) e 2) Busca os jogos (preço vem do BANCO, nunca do navegador) e valida
             $itens = [];
+            // confere os jogos
             foreach ($ids as $id) {
                 $jogo = $jogoDAO->travarParaCompra($id);
                 if (!$jogo || $jogo['deleted_at'] !== null || !(int) $jogo['ativo']) {
@@ -63,16 +52,16 @@ class CheckoutController extends Controller
                 ];
             }
 
-            // 3) Valores: cupom aplicado sobre o total já com promoções
+            // total com cupom
             $subtotal = round(array_sum(array_column($itens, 'preco')), 2);
             $percentual = $cupom ? (float) $cupom['percentual_desconto'] : 0;
             $desconto = round($subtotal * $percentual / 100, 2);
             $total = round($subtotal - $desconto, 2);
 
-            // 4) Simula o pagamento (total R$ 0,00 pula esta etapa)
+            // pagamento
             $pagamento = $total > 0 ? $this->simularPagamento($req, $usuario, $total) : null;
 
-            // 5) Cria pedido, itens (com código), biblioteca e baixa o estoque
+            // cria o pedido
             $pedidoId = $pedidoDAO->criar($usuario->id, $subtotal, $desconto, $total, $cupom ? (int) $cupom['id'] : null);
 
             $itensResposta = [];
@@ -93,7 +82,6 @@ class CheckoutController extends Controller
             }
 
             if ($pagamento) {
-                // salva o cartão (só bin6, últimos 4, bandeira, banco e validade)
                 if ($pagamento['salvar_cartao']) {
                     $formaDAO = new FormaPagamentoDAO($this->pdo);
                     $primeiro = $formaDAO->contar($usuario->id) === 0;
@@ -103,9 +91,7 @@ class CheckoutController extends Controller
             }
 
             $this->pdo->commit();
-
         } catch (Throwable $e) {
-            // 7) Qualquer erro: desfaz tudo
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
@@ -134,11 +120,6 @@ class CheckoutController extends Controller
         ], 201);
     }
 
-    /**
-     * Pagamento de mentirinha:
-     * - PIX e Boleto: aprovados na hora.
-     * - Cartão: valida Luhn, validade e CVV; final 0000 é RECUSADO.
-     */
     private function simularPagamento(Request $req, Usuario $usuario, float $total): array
     {
         $metodo = strtoupper((string) $req->input('metodo', ''));
@@ -162,14 +143,12 @@ class CheckoutController extends Controller
             return $pagamento;
         }
 
-        // Parcelas: 1 a 12x sem juros (só no crédito)
         if ($metodo === 'CARTAO_CREDITO') {
             $pagamento['parcelas'] = Validador::inteiro($req->input('parcelas', 1), 'parcelas', 1, 12);
         }
 
         $formaId = (int) $req->input('forma_pagamento_id', 0);
         if ($formaId > 0) {
-            // Cartão salvo
             $forma = (new FormaPagamentoDAO($this->pdo))->buscar($formaId, $usuario->id);
             if (!$forma) {
                 throw new ErroApi('Cartão salvo não encontrado.', 404);
@@ -182,7 +161,6 @@ class CheckoutController extends Controller
             $pagamento['bandeira'] = $forma['bandeira'];
             $pagamento['emissor']  = $forma['emissor'];
         } else {
-            // Cartão novo digitado agora
             $dados = $req->input('cartao');
             if (!is_array($dados)) {
                 throw new ErroApi('Informe os dados do cartão.', 422);
@@ -203,14 +181,14 @@ class CheckoutController extends Controller
             }
         }
 
-        // Simulação de recusa para a apresentação
+        // cartao final 0000 e recusado
         if ($pagamento['ultimos4'] === '0000') {
             throw new ErroApi('Pagamento recusado (simulação). Tente outro cartão.', 422);
         }
         return $pagamento;
     }
 
-    // Gera GS-XXXX-XXXX-XXXX com random_bytes e confere se não existe
+    // codigo GS-XXXX-XXXX-XXXX
     private function gerarCodigoUnico(PedidoDAO $dao): string
     {
         do {
@@ -218,7 +196,7 @@ class CheckoutController extends Controller
             for ($b = 0; $b < 3; $b++) {
                 $bloco = '';
                 foreach (str_split(random_bytes(4)) as $byte) {
-                    $bloco .= self::ALFABETO_CODIGO[ord($byte) % 32];   // 256 / 32 = sem viés
+                    $bloco .= self::ALFABETO_CODIGO[ord($byte) % 32];
                 }
                 $blocos[] = $bloco;
             }

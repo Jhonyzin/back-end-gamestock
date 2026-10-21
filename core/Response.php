@@ -1,10 +1,5 @@
 <?php
 
-/**
- * Monta as respostas JSON da API.
- * Sucesso: {"sucesso":true,"dados":...}
- * Erro:    {"sucesso":false,"erro":"mensagem"}
- */
 class Response
 {
     public static function json(array $corpo, int $codigoHttp = 200): void

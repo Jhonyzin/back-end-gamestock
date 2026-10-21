@@ -1,10 +1,5 @@
 <?php
 
-/**
- * MODEL FormaPagamento: cartão salvo do comprador.
- * Só existe o que é seguro guardar: 4 últimos dígitos, bandeira,
- * banco e validade. Nada de número completo ou CVV.
- */
 class FormaPagamento
 {
     public int $id;
@@ -17,7 +12,7 @@ class FormaPagamento
     public int $validadeMes;
     public int $validadeAno;
     public bool $padrao;
-    public ?array $banco = null;   // logo e cor do banco (tabela bins_cartao)
+    public ?array $banco = null;
 
     public static function deLinha(array $l): self
     {
@@ -35,7 +30,6 @@ class FormaPagamento
         return $f;
     }
 
-    // "MM/AA"
     public function validadeTexto(): string
     {
         return sprintf('%02d/%02d', $this->validadeMes, $this->validadeAno % 100);

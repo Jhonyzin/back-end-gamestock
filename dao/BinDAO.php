@@ -1,16 +1,14 @@
 <?php
 
-/**
- * DAO da tabela bins_cartao (FICTÍCIA, só para a demonstração):
- * descobre o banco pelos primeiros dígitos do cartão.
- */
 class BinDAO
 {
-    public function __construct(private PDO $pdo)
+    private $pdo;
+
+    public function __construct($pdo)
     {
+        $this->pdo = $pdo;
     }
 
-    // Procura o prefixo MAIS LONGO que combina com o começo do número
     public function identificar(string $bin): ?array
     {
         $stmt = $this->pdo->prepare(

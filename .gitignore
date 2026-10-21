@@ -1,9 +1,7 @@
-# Credenciais nunca vão para o Git
 .env
 .env.*
 !.env.example
 
-# Arquivos enviados pelo site
 uploads/perfis/*
 uploads/jogos/*
 !uploads/perfis/.gitkeep

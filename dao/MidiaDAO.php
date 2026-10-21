@@ -1,15 +1,14 @@
 <?php
 
-/**
- * DAO de mídias do jogo: imagens (capa, galeria, screenshots) e vídeos.
- */
 class MidiaDAO
 {
-    public function __construct(private PDO $pdo)
+    private $pdo;
+
+    public function __construct($pdo)
     {
+        $this->pdo = $pdo;
     }
 
-    // tipos: lista opcional, ex.: ['GALERIA', 'SCREENSHOT']
     public function imagens(int $produtoId, array $tipos = [], int $limite = 0): array
     {
         $sql = 'SELECT id, caminho_url, tipo, ordem, principal FROM produto_imagens WHERE produto_id = ? AND ativo = 1';
@@ -56,7 +55,6 @@ class MidiaDAO
         return (int) $this->pdo->lastInsertId();
     }
 
-    // Regra que no Postgres era um índice parcial: só UMA capa principal por jogo
     public function desmarcarCapasPrincipais(int $produtoId): void
     {
         $this->pdo->prepare("UPDATE produto_imagens SET principal = 0 WHERE produto_id = ? AND tipo = 'CAPA'")

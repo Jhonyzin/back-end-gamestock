@@ -1,10 +1,5 @@
 <?php
 
-/**
- * Regras de cartão (iguais às do front em src/util/cartao.js):
- * reconhecer a bandeira, conferir o Luhn, a validade e o CVV.
- * IMPORTANTE: o número completo e o CVV NUNCA são salvos.
- */
 class Cartao
 {
     public static function somenteDigitos(?string $texto): string
@@ -12,7 +7,7 @@ class Cartao
         return preg_replace('/\D/', '', (string) $texto);
     }
 
-    // Algoritmo de Luhn: confere o dígito verificador do cartão
+    // confere se o numero do cartao e valido
     public static function luhn(string $numero): bool
     {
         $soma = 0;
@@ -31,7 +26,7 @@ class Cartao
         return $numero !== '' && $soma % 10 === 0;
     }
 
-    // Reconhece a bandeira pelo começo do número (Elo primeiro!)
+    // descobre a bandeira
     public static function bandeira(string $numero): ?array
     {
         $prefixosElo = ['636368', '438935', '504175', '451416', '636297', '5067', '4576', '4011', '6277'];
@@ -61,7 +56,6 @@ class Cartao
         return null;
     }
 
-    // "MM/AA" -> [mes, ano com 4 dígitos]
     public static function lerValidade(?string $texto): array
     {
         if (!preg_match('/^(\d{2})\s*\/\s*(\d{2})$/', trim((string) $texto), $m)) {
@@ -78,7 +72,6 @@ class Cartao
         return [$mes, $ano];
     }
 
-    // O cartão vale até o último dia do mês da validade
     public static function validadeOk(int $mes, int $ano): bool
     {
         $anoAtual = (int) date('Y');
@@ -86,10 +79,6 @@ class Cartao
         return $ano > $anoAtual || ($ano === $anoAtual && $mes >= $mesAtual);
     }
 
-    /**
-     * Valida um cartão digitado e devolve SÓ o que pode ser guardado:
-     * bin6, últimos 4, bandeira, titular, mês e ano. O número some aqui.
-     */
     public static function validar(array $dados, bool $exigirCvv): array
     {
         $numero = self::somenteDigitos($dados['numero'] ?? '');

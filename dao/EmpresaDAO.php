@@ -1,12 +1,12 @@
 <?php
 
-/**
- * DAO de marcas (desenvolvedoras) e editoras — usadas nos selects do formulário de jogos.
- */
 class EmpresaDAO
 {
-    public function __construct(private PDO $pdo)
+    private $pdo;
+
+    public function __construct($pdo)
     {
+        $this->pdo = $pdo;
     }
 
     public function listarMarcas(): array

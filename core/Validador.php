@@ -1,9 +1,5 @@
 <?php
 
-/**
- * Validações feitas SEMPRE no servidor (o front também valida,
- * mas não podemos confiar só nele). Em caso de erro lança ErroApi 422.
- */
 class Validador
 {
     public static function obrigatorios(array $dados, array $campos): void
@@ -37,7 +33,6 @@ class Validador
         return $senha;
     }
 
-    // Texto opcional: devolve null se vazio; erro se passar do limite
     public static function texto(mixed $valor, int $maximo, string $rotulo): ?string
     {
         $valor = trim((string) ($valor ?? ''));
@@ -62,7 +57,6 @@ class Validador
         return $numero;
     }
 
-    // Aceita "84.50" e "84,50"
     public static function decimal(mixed $valor, string $rotulo, float $minimo = 0, ?float $maximo = null): float
     {
         $texto = str_replace(',', '.', trim((string) $valor));
@@ -76,7 +70,6 @@ class Validador
         return $numero;
     }
 
-    // Lista de ids (ex.: [1, 2, 3]) -> inteiros positivos sem repetição
     public static function listaIds(mixed $valor): array
     {
         if (is_string($valor)) {
@@ -95,7 +88,6 @@ class Validador
         return array_values($ids);
     }
 
-    // Telefone: guarda só números (10 ou 11 dígitos) ou null
     public static function telefone(mixed $valor): ?string
     {
         $digitos = preg_replace('/\D/', '', (string) ($valor ?? ''));
@@ -108,7 +100,6 @@ class Validador
         return $digitos;
     }
 
-    // Data/hora vinda do formulário ("2025-06-10T14:30" ou "2025-06-10 14:30:00")
     public static function dataHora(mixed $valor, string $rotulo): string
     {
         $texto = str_replace('T', ' ', trim((string) $valor));
@@ -119,7 +110,6 @@ class Validador
         return $data->format('Y-m-d H:i:s');
     }
 
-    // Converte 1/0, true/false, "on" em 1 ou 0
     public static function booleano(mixed $valor): int
     {
         return in_array($valor, [true, 1, '1', 'true', 'on', 'sim'], true) ? 1 : 0;

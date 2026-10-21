@@ -1,12 +1,7 @@
 <?php
 
-/**
- * CONTROLLER do CRUD de usuários no painel admin.
- * Regra: o administrador NÃO pode excluir nem desativar a si mesmo.
- */
 class AdminUsuarioController extends Controller
 {
-    // GET /admin/usuarios?busca=
     public function listar(Request $req): void
     {
         $linhas = (new UsuarioDAO($this->pdo))->listar((string) $req->query('busca', ''));
@@ -16,13 +11,11 @@ class AdminUsuarioController extends Controller
         ));
     }
 
-    // GET /admin/usuarios/{id}
     public function mostrar(Request $req): void
     {
         Response::sucesso(Usuario::deLinha($this->buscarOuFalhar($this->idDaRota($req)))->toArray());
     }
 
-    // POST /admin/usuarios {nome, email, senha, telefone?, tipo_usuario, ativo}
     public function criar(Request $req): void
     {
         Validador::obrigatorios($req->todos(), ['nome' => 'nome', 'email' => 'e-mail', 'senha' => 'senha']);
@@ -37,7 +30,6 @@ class AdminUsuarioController extends Controller
         Response::sucesso(Usuario::deLinha($dao->buscarPorId($id))->toArray(), 201);
     }
 
-    // PUT /admin/usuarios/{id} (senha opcional: só troca se vier preenchida)
     public function atualizar(Request $req): void
     {
         $id = $this->idDaRota($req);
@@ -61,7 +53,7 @@ class AdminUsuarioController extends Controller
         if ($senha !== '') {
             $dao->atualizarSenha($id, password_hash(Validador::senha($senha), PASSWORD_DEFAULT));
         }
-        // conta desativada perde o login na hora
+
         if (!$dados['ativo']) {
             (new SessaoDAO($this->pdo))->apagarDoUsuario($id);
         }
@@ -69,7 +61,6 @@ class AdminUsuarioController extends Controller
         Response::sucesso(Usuario::deLinha($dao->buscarPorId($id))->toArray());
     }
 
-    // DELETE /admin/usuarios/{id} (exclusão lógica)
     public function excluir(Request $req): void
     {
         $id = $this->idDaRota($req);

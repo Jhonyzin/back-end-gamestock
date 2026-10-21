@@ -1,15 +1,14 @@
 <?php
 
-/**
- * DAO de sessões (tokens de login). Guarda só o hash SHA-256 do token.
- */
 class SessaoDAO
 {
-    public function __construct(private PDO $pdo)
+    private $pdo;
+
+    public function __construct($pdo)
     {
+        $this->pdo = $pdo;
     }
 
-    // A data de validade é calculada no PHP (funciona igual no PostgreSQL e no MySQL)
     public function criar(int $usuarioId, string $tokenHash, int $dias): void
     {
         $expira = date('Y-m-d H:i:s', strtotime("+{$dias} days"));
@@ -17,7 +16,6 @@ class SessaoDAO
         $stmt->execute([$usuarioId, $tokenHash, $expira]);
     }
 
-    // Usuário dono do token, se a sessão ainda vale e a conta está ativa
     public function buscarUsuario(string $tokenHash): ?array
     {
         $stmt = $this->pdo->prepare(
@@ -38,7 +36,6 @@ class SessaoDAO
         $this->pdo->prepare('DELETE FROM sessoes WHERE token_hash = ?')->execute([$tokenHash]);
     }
 
-    // Derruba todas as sessões (conta desativada/excluída)
     public function apagarDoUsuario(int $usuarioId): void
     {
         $this->pdo->prepare('DELETE FROM sessoes WHERE usuario_id = ?')->execute([$usuarioId]);

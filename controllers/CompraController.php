@@ -1,11 +1,7 @@
 <?php
 
-/**
- * CONTROLLER da área do comprador: biblioteca, histórico e códigos de resgate.
- */
 class CompraController extends Controller
 {
-    // GET /biblioteca
     public function biblioteca(Request $req): void
     {
         $linhas = (new BibliotecaDAO($this->pdo))->listarDoUsuario($req->usuario->id);
@@ -23,7 +19,6 @@ class CompraController extends Controller
         ], $linhas));
     }
 
-    // GET /compras (códigos mascarados + avaliação de cada jogo)
     public function historico(Request $req): void
     {
         $pedidoDAO = new PedidoDAO($this->pdo);
@@ -41,7 +36,6 @@ class CompraController extends Controller
         Response::sucesso(array_values(array_map(fn (Pedido $p) => $p->toArray(), $pedidos)));
     }
 
-    // GET /compras/itens/{itemId}/codigo (só o dono vê o código completo)
     public function codigo(Request $req): void
     {
         $item = (new PedidoDAO($this->pdo))->buscarItem($this->idDaRota($req, 'itemId'));

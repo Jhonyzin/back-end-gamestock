@@ -1,11 +1,7 @@
 <?php
 
-/**
- * CONTROLLER da vitrine: catálogo, seções da Home e página do jogo.
- */
 class JogoController extends Controller
 {
-    // GET /jogos?busca=&categoria=&plataforma=&preco=&promocao=1&nota_min=&ordem=&ids=&pagina=&limite=
     public function listar(Request $req): void
     {
         $filtros = [
@@ -21,7 +17,6 @@ class JogoController extends Controller
         $pagina = max(1, (int) $req->query('pagina', 1));
         $limite = min(100, max(1, (int) $req->query('limite', 12)));
 
-        // ?ids= veio, mas sem nenhum id válido: lista vazia
         if ($req->query('ids') !== null && !$filtros['ids']) {
             Response::sucesso(['itens' => [], 'total' => 0, 'pagina' => 1, 'limite' => $limite]);
         }
@@ -36,7 +31,6 @@ class JogoController extends Controller
         ]);
     }
 
-    // GET /jogos/destaques (carrossel, com até 4 imagens da galeria)
     public function destaques(Request $req): void
     {
         $jogos = (new JogoDAO($this->pdo))->destaques();
@@ -50,7 +44,6 @@ class JogoController extends Controller
         Response::sucesso($lista);
     }
 
-    // GET /jogos/promocoes (cards grandes "Descontos e eventos")
     public function promocoes(Request $req): void
     {
         $limite = min(50, max(1, (int) $req->query('limite', 12)));
@@ -58,7 +51,6 @@ class JogoController extends Controller
         Response::sucesso($this->paraArray($jogos, $req->usuario));
     }
 
-    // GET /jogos/mais-vendidos
     public function maisVendidos(Request $req): void
     {
         $limite = min(50, max(1, (int) $req->query('limite', 10)));
@@ -66,7 +58,6 @@ class JogoController extends Controller
         Response::sucesso($this->paraArray($jogos, $req->usuario));
     }
 
-    // GET /jogos/lancamentos
     public function lancamentos(Request $req): void
     {
         $limite = min(50, max(1, (int) $req->query('limite', 8)));
@@ -74,7 +65,6 @@ class JogoController extends Controller
         Response::sucesso($this->paraArray($jogos, $req->usuario));
     }
 
-    // GET /jogos/{id} (página do jogo)
     public function detalhe(Request $req): void
     {
         $id = $this->idDaRota($req);
@@ -90,14 +80,12 @@ class JogoController extends Controller
         Response::sucesso($this->paraArray([$jogo], $req->usuario)[0]);
     }
 
-    // GET /jogos/{id}/relacionados
     public function relacionados(Request $req): void
     {
         $jogos = (new JogoDAO($this->pdo))->relacionados($this->idDaRota($req));
         Response::sucesso($this->paraArray($jogos, $req->usuario));
     }
 
-    // Marca "possui" e "desejado" (se houver login) e converte para array
     private function paraArray(array $jogos, ?Usuario $usuario): array
     {
         if ($usuario) {

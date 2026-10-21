@@ -1,8 +1,5 @@
 <?php
 
-/**
- * DAO de plataformas (PC, PS5, Xbox...). Toda a lógica está em CadastroSimplesDAO.
- */
 class PlataformaDAO extends CadastroSimplesDAO
 {
     protected string $tabela = 'plataformas';

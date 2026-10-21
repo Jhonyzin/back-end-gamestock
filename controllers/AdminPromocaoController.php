@@ -1,25 +1,18 @@
 <?php
 
-/**
- * CONTROLLER do CRUD de promoções. Os jogos de uma promoção ativa
- * aparecem sozinhos nos cards grandes da Home (via vw_precos_jogos).
- */
 class AdminPromocaoController extends Controller
 {
-    // GET /admin/promocoes
     public function listar(Request $req): void
     {
         $lista = (new PromocaoDAO($this->pdo))->listar();
         Response::sucesso(array_map(fn (Promocao $p) => $p->toArray(), $lista));
     }
 
-    // GET /admin/promocoes/{id}
     public function mostrar(Request $req): void
     {
         Response::sucesso($this->buscarOuFalhar($this->idDaRota($req))->toArray());
     }
 
-    // POST /admin/promocoes {nome, descricao, percentual, data_inicio, data_fim, ativo, jogos: [ids]}
     public function criar(Request $req): void
     {
         $dados = $this->lerFormulario($req);
@@ -37,7 +30,6 @@ class AdminPromocaoController extends Controller
         Response::sucesso($dao->buscar($id)->toArray(), 201);
     }
 
-    // PUT /admin/promocoes/{id}
     public function atualizar(Request $req): void
     {
         $id = $this->idDaRota($req);
@@ -57,7 +49,6 @@ class AdminPromocaoController extends Controller
         Response::sucesso($dao->buscar($id)->toArray());
     }
 
-    // DELETE /admin/promocoes/{id}
     public function excluir(Request $req): void
     {
         $id = $this->idDaRota($req);

@@ -1,14 +1,7 @@
 <?php
 
-/**
- * DAO de jogos (tabela "produtos" + view "vw_precos_jogos").
- * Toda listagem usa a view, então o preço já vem com a promoção ativa.
- * O SQL é "padrão": funciona no PostgreSQL e no MySQL.
- */
 class JogoDAO
 {
-    // SELECT usado por todas as listagens: dados do jogo + preço + capa
-    // + nota média + vendas (categorias e plataformas vêm em outra consulta)
     private const SELECT_BASE = "
         SELECT p.*,
                v.preco_base, v.preco_final, v.percentual,
@@ -28,8 +21,6 @@ class JogoDAO
           LEFT JOIN editoras e ON e.id = p.editora_id
     ";
 
-    // Ordenações permitidas na loja (nunca colocamos texto do usuário no ORDER BY).
-    // "j" é a consulta base embrulhada (ver consultar); "IS NULL" joga os vazios para o fim.
     private const ORDENS = [
         'populares'   => 'j.vendas DESC, j.popular DESC, j.destaque DESC, j.nome ASC',
         'preco-asc'   => 'j.preco_final ASC, j.nome ASC',
@@ -39,13 +30,13 @@ class JogoDAO
         'nome'        => 'j.nome ASC',
     ];
 
-    public function __construct(private PDO $pdo)
+    private $pdo;
+
+    public function __construct($pdo)
     {
+        $this->pdo = $pdo;
     }
 
-    // Executa o SELECT_BASE com filtros e devolve objetos Jogo.
-    // A consulta fica "embrulhada" (SELECT * FROM (...) j) para poder ordenar
-    // pelas colunas calculadas (vendas, nota_media) no PostgreSQL e no MySQL.
     private function consultar(string $where, array $params, string $ordem, int $limite = 0, int $offset = 0): array
     {
         $sql = 'SELECT * FROM (' . self::SELECT_BASE . " WHERE {$where}) j ORDER BY {$ordem}";
@@ -58,8 +49,6 @@ class JogoDAO
         return array_map(fn ($linha) => Jogo::deLinha($linha), $linhas);
     }
 
-    // Busca categorias e plataformas de vários jogos de uma vez só
-    // e coloca em cada linha como lista: ['categorias' => ['RPG'], ...]
     private function adicionarListas(array $linhas): array
     {
         if (!$linhas) {
@@ -98,14 +87,13 @@ class JogoDAO
         return $linhas;
     }
 
-    // Monta o WHERE da loja a partir dos filtros da URL
     private function montarFiltros(array $f): array
     {
         $where = ['p.deleted_at IS NULL', 'p.ativo = 1'];
         $params = [];
 
         if (!empty($f['busca'])) {
-            $where[] = 'LOWER(p.nome) LIKE ?';   // sem diferenciar maiúsculas
+            $where[] = 'LOWER(p.nome) LIKE ?';
             $params[] = '%' . mb_strtolower($f['busca']) . '%';
         }
         if (!empty($f['categoria'])) {
@@ -136,7 +124,7 @@ class JogoDAO
         return [implode(' AND ', $where), $params];
     }
 
-    // Catálogo da loja com paginação: devolve [jogos, total]
+    // lista da loja
     public function listar(array $filtros, int $pagina, int $limite): array
     {
         [$where, $params] = $this->montarFiltros($filtros);
@@ -171,7 +159,6 @@ class JogoDAO
         return $this->consultar('p.deleted_at IS NULL AND p.ativo = 1', [], self::ORDENS['lancamentos'], $limite);
     }
 
-    // Linha completa do jogo (para o detalhe). Admin pode ver inativos.
     public function buscarLinha(int $id, bool $somenteAtivos = true): ?array
     {
         $where = 'p.id = ? AND p.deleted_at IS NULL' . ($somenteAtivos ? ' AND p.ativo = 1' : '');
@@ -181,7 +168,6 @@ class JogoDAO
         return $linha ? $this->adicionarListas([$linha])[0] : null;
     }
 
-    // 3 jogos da mesma categoria ou da mesma editora
     public function relacionados(int $id): array
     {
         $where = "p.deleted_at IS NULL AND p.ativo = 1 AND p.id <> ? AND (
@@ -192,8 +178,6 @@ class JogoDAO
                   )";
         return $this->consultar($where, [$id, $id, $id], 'j.vendas DESC, j.popular DESC, j.id ASC', 3);
     }
-
-    // ---------- Admin ----------
 
     public function listarAdmin(string $busca = ''): array
     {
@@ -227,7 +211,6 @@ class JogoDAO
         return (int) $stmt->fetchColumn() > 0;
     }
 
-    // Colunas que o formulário do admin pode gravar
     private const COLUNAS = [
         'nome', 'slug', 'descricao_curta', 'descricao', 'preco', 'tipo_midia', 'edicao', 'ano_lancamento',
         'versao_console', 'espaco_minimo_requerido', 'req_so', 'req_cpu', 'req_gpu', 'req_ram',
@@ -272,7 +255,6 @@ class JogoDAO
         }
     }
 
-    // Exclusão lógica: o jogo some da loja, mas os pedidos antigos continuam
     public function excluir(int $id): void
     {
         $this->pdo->prepare('UPDATE produtos SET deleted_at = NOW(), ativo = 0, destaque = 0 WHERE id = ?')->execute([$id]);
@@ -285,9 +267,6 @@ class JogoDAO
         return (int) $stmt->fetchColumn() > 0;
     }
 
-    // ---------- Checkout ----------
-
-    // Lê o jogo TRAVANDO a linha até o fim da transação (evita vender a mesma chave 2x)
     public function travarParaCompra(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
@@ -297,7 +276,6 @@ class JogoDAO
         return $stmt->fetch() ?: null;
     }
 
-    // Preço atual vindo da view (o preço NUNCA vem do navegador)
     public function precoAtual(int $id): array
     {
         $stmt = $this->pdo->prepare('SELECT preco_base, preco_final, percentual FROM vw_precos_jogos WHERE produto_id = ?');

@@ -1,8 +1,5 @@
 <?php
 
-/**
- * MODEL Avaliacao: nota (1 a 5) e comentário de um usuário sobre um jogo.
- */
 class Avaliacao
 {
     public int $id;

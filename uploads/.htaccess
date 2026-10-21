@@ -1,4 +1,3 @@
-# Pasta de uploads: só imagens. NUNCA executar PHP aqui.
 Options -Indexes
 
 <FilesMatch "\.(php|phtml|phar|php\d|pht|cgi|pl|py|sh)$">

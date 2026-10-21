@@ -1,12 +1,7 @@
 <?php
 
-/**
- * CONTROLLER de avaliações na página do jogo.
- * Só quem possui o jogo pode avaliar; 1 avaliação por jogo (editável).
- */
 class AvaliacaoController extends Controller
 {
-    // GET /jogos/{id}/avaliacoes
     public function listar(Request $req): void
     {
         $id = $this->idDaRota($req);
@@ -33,7 +28,6 @@ class AvaliacaoController extends Controller
         ]);
     }
 
-    // POST /jogos/{id}/avaliacoes {nota, comentario}
     public function salvar(Request $req): void
     {
         $id = $this->idDaRota($req);

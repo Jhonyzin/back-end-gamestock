@@ -1,15 +1,14 @@
 <?php
 
-/**
- * DAO de cupons de desconto.
- */
 class CupomDAO
 {
-    public function __construct(private PDO $pdo)
+    private $pdo;
+
+    public function __construct($pdo)
     {
+        $this->pdo = $pdo;
     }
 
-    // Cupom ativo e dentro da validade (validade NULL = sem prazo)
     public function buscarValido(string $codigo): ?array
     {
         $stmt = $this->pdo->prepare(

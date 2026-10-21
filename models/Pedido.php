@@ -1,10 +1,5 @@
 <?php
 
-/**
- * MODEL Pedido: um pedido com seus itens e o pagamento.
- * Os códigos de resgate saem MASCARADOS por padrão
- * (o código completo só é entregue pela rota /compras/itens/{id}/codigo).
- */
 class Pedido
 {
     public int $id;
@@ -45,7 +40,6 @@ class Pedido
         return $p;
     }
 
-    // "GS-AB12-CD34-EF56" -> "GS-****-****-EF56"
     public static function mascararCodigo(string $codigo): string
     {
         return 'GS-****-****-' . substr($codigo, -4);

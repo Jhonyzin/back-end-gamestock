@@ -1,18 +1,13 @@
 <?php
 
-/**
- * CONTROLLER do dashboard do administrador (números reais do banco).
- */
 class AdminDashboardController extends Controller
 {
-    // GET /admin/dashboard
     public function resumo(Request $req): void
     {
         $dao = new DashboardDAO($this->pdo);
         $jogos = $dao->contagemJogos();
         $vendas = $dao->vendas();
 
-        // últimos 10 pedidos com itens
         $pedidoDAO = new PedidoDAO($this->pdo);
         $pedidos = [];
         foreach ($pedidoDAO->listarTodos(10) as $linha) {

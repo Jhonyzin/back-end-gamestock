@@ -1,13 +1,12 @@
 <?php
 
-/**
- * DAO do dashboard do administrador.
- * Tudo calculado por SQL a partir dos pedidos reais (inclusive os simulados).
- */
 class DashboardDAO
 {
-    public function __construct(private PDO $pdo)
+    private $pdo;
+
+    public function __construct($pdo)
     {
+        $this->pdo = $pdo;
     }
 
     public function contagemJogos(): array
@@ -28,7 +27,6 @@ class DashboardDAO
         return (int) $this->pdo->query('SELECT COUNT(*) FROM usuarios WHERE deleted_at IS NULL')->fetchColumn();
     }
 
-    // Quantidade de pedidos concluídos e faturamento bruto
     public function vendas(): array
     {
         $l = $this->pdo->query(
@@ -38,10 +36,8 @@ class DashboardDAO
         return ['total' => (int) $l['total'], 'faturamento' => (float) $l['faturamento']];
     }
 
-    // Últimos 30 dias, incluindo os dias sem venda (com zero)
     public function vendasPorDia(int $dias = 30): array
     {
-        // primeiro dia do período (calculado no PHP, igual nos dois bancos)
         $hoje = new DateTime('today');
         $inicio = (clone $hoje)->modify('-' . ($dias - 1) . ' day')->format('Y-m-d 00:00:00');
 
@@ -57,7 +53,6 @@ class DashboardDAO
             $porDia[substr($l['dia'], 0, 10)] = $l;
         }
 
-        // gera a lista de dias (inclusive os sem venda)
         $resultado = [];
         for ($i = $dias - 1; $i >= 0; $i--) {
             $dia = (clone $hoje)->modify("-{$i} day")->format('Y-m-d');

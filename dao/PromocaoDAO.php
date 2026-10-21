@@ -1,15 +1,14 @@
 <?php
 
-/**
- * DAO de promoções e dos jogos de cada promoção.
- */
 class PromocaoDAO
 {
-    public function __construct(private PDO $pdo)
+    private $pdo;
+
+    public function __construct($pdo)
     {
+        $this->pdo = $pdo;
     }
 
-    // ids dos jogos de cada promoção: [promocao_id => [1, 2, 3]]
     private function jogosPorPromocao(): array
     {
         $mapa = [];

@@ -1,8 +1,5 @@
 <?php
 
-/**
- * DAO de avaliações (nota 1 a 5 + comentário). Uma por usuário e jogo.
- */
 class AvaliacaoDAO
 {
     private const SELECT_BASE = "
@@ -12,8 +9,11 @@ class AvaliacaoDAO
           JOIN produtos pr ON pr.id = a.produto_id
     ";
 
-    public function __construct(private PDO $pdo)
+    private $pdo;
+
+    public function __construct($pdo)
     {
+        $this->pdo = $pdo;
     }
 
     public function listarDoJogo(int $produtoId): array
@@ -36,7 +36,6 @@ class AvaliacaoDAO
         return $stmt->fetch() ?: null;
     }
 
-    // Se já existe, atualiza; senão, cria (1 avaliação por jogo)
     public function salvar(int $usuarioId, int $produtoId, int $nota, ?string $comentario): void
     {
         if ($this->buscarDoUsuario($usuarioId, $produtoId)) {
@@ -48,7 +47,6 @@ class AvaliacaoDAO
         }
     }
 
-    // Mapa produto_id => {nota, comentario} das avaliações do usuário
     public function mapaDoUsuario(int $usuarioId): array
     {
         $stmt = $this->pdo->prepare('SELECT produto_id, nota, comentario FROM avaliacoes WHERE usuario_id = ?');

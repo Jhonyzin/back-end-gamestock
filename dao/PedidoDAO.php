@@ -1,11 +1,7 @@
 <?php
 
-/**
- * DAO de pedidos, itens (com o código de resgate) e pagamentos.
- */
 class PedidoDAO
 {
-    // Pedido + cliente + cupom + pagamento (um pagamento por pedido)
     private const SELECT_PEDIDOS = "
         SELECT pe.*, c.codigo AS cupom_codigo,
                COALESCE(u.nome_exibicao, u.nome) AS cliente_nome, u.email AS cliente_email,
@@ -17,8 +13,11 @@ class PedidoDAO
           LEFT JOIN pagamentos pg ON pg.pedido_id = pe.id
     ";
 
-    public function __construct(private PDO $pdo)
+    private $pdo;
+
+    public function __construct($pdo)
     {
+        $this->pdo = $pdo;
     }
 
     public function criar(int $usuarioId, float $subtotal, float $desconto, float $total, ?int $cupomId): int
@@ -84,7 +83,6 @@ class PedidoDAO
         return $this->pdo->query($sql)->fetchAll();
     }
 
-    // Itens de vários pedidos de uma vez (com nome e capa do jogo)
     public function itensDosPedidos(array $pedidoIds): array
     {
         if (!$pedidoIds) {
@@ -105,7 +103,6 @@ class PedidoDAO
         return $stmt->fetchAll();
     }
 
-    // Item + dono do pedido (para conferir quem pode ver o código)
     public function buscarItem(int $itemId): ?array
     {
         $stmt = $this->pdo->prepare(

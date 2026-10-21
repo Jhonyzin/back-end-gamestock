@@ -1,12 +1,12 @@
 <?php
 
-/**
- * DAO das configurações do site (chave/valor).
- */
 class ConfiguracaoDAO
 {
-    public function __construct(private PDO $pdo)
+    private $pdo;
+
+    public function __construct($pdo)
     {
+        $this->pdo = $pdo;
     }
 
     public function listar(): array
@@ -14,7 +14,6 @@ class ConfiguracaoDAO
         return $this->pdo->query('SELECT chave, valor, descricao FROM configuracoes_site ORDER BY chave')->fetchAll();
     }
 
-    // { "nome_loja": "GameStock", ... }
     public function mapa(): array
     {
         $mapa = [];
@@ -24,7 +23,6 @@ class ConfiguracaoDAO
         return $mapa;
     }
 
-    // Só altera chaves que já existem
     public function atualizar(string $chave, ?string $valor): bool
     {
         $stmt = $this->pdo->prepare('UPDATE configuracoes_site SET valor = ? WHERE chave = ?');

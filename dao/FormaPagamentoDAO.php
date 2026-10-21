@@ -1,13 +1,12 @@
 <?php
 
-/**
- * DAO dos cartões salvos (tabela "formas_pagamento").
- * Recebe só dados seguros: bin6, últimos 4, bandeira, banco, validade.
- */
 class FormaPagamentoDAO
 {
-    public function __construct(private PDO $pdo)
+    private $pdo;
+
+    public function __construct($pdo)
     {
+        $this->pdo = $pdo;
     }
 
     public function listar(int $usuarioId): array
@@ -19,7 +18,6 @@ class FormaPagamentoDAO
         return $stmt->fetchAll();
     }
 
-    // Busca garantindo que o cartão é DO usuário
     public function buscar(int $id, int $usuarioId): ?array
     {
         $stmt = $this->pdo->prepare('SELECT * FROM formas_pagamento WHERE id = ? AND usuario_id = ? AND ativo = 1');
@@ -48,7 +46,6 @@ class FormaPagamentoDAO
         return (int) $this->pdo->lastInsertId();
     }
 
-    // Só um cartão padrão por usuário
     public function tornarPadrao(int $id, int $usuarioId): void
     {
         $this->pdo->prepare('UPDATE formas_pagamento SET padrao = 0 WHERE usuario_id = ?')->execute([$usuarioId]);
@@ -60,7 +57,6 @@ class FormaPagamentoDAO
         $this->pdo->prepare('DELETE FROM formas_pagamento WHERE id = ? AND usuario_id = ?')->execute([$id, $usuarioId]);
     }
 
-    // Depois de remover o padrão, o cartão mais novo vira o padrão
     public function garantirPadrao(int $usuarioId): void
     {
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM formas_pagamento WHERE usuario_id = ? AND ativo = 1 AND padrao = 1');

@@ -1,13 +1,7 @@
 <?php
 
-/**
- * CONTROLLER de cartões: identificar o banco pelo BIN e
- * gerenciar os cartões salvos (formas de pagamento).
- * O número completo é usado só para validar e NUNCA é salvo nem devolvido.
- */
 class CartaoController extends Controller
 {
-    // Banco padrão quando o prefixo não está na tabela
     private const BANCO_GENERICO = [
         'encontrado' => false,
         'banco'      => 'Banco não identificado',
@@ -16,7 +10,6 @@ class CartaoController extends Controller
         'bandeira'   => null,
     ];
 
-    // GET /cartoes/identificar?bin=424242
     public function identificar(Request $req): void
     {
         $bin = substr(Cartao::somenteDigitos((string) $req->query('bin', '')), 0, 6);
@@ -26,17 +19,14 @@ class CartaoController extends Controller
         Response::sucesso($this->bancoDoBin($bin));
     }
 
-    // GET /formas-pagamento
     public function listar(Request $req): void
     {
         $linhas = (new FormaPagamentoDAO($this->pdo))->listar($req->usuario->id);
         Response::sucesso(array_map(fn ($l) => $this->formatar($l), $linhas));
     }
 
-    // POST /formas-pagamento {numero, titular, validade, tipo, apelido?, padrao?}
     public function adicionar(Request $req): void
     {
-        // valida e já descarta o número completo (sobra só bin6 e últimos 4)
         $cartao = Cartao::validar($req->todos(), false);
 
         $tipo = $req->input('tipo', 'CARTAO_CREDITO');
@@ -61,7 +51,6 @@ class CartaoController extends Controller
         Response::sucesso($this->formatar($dao->buscar($id, $req->usuario->id)), 201);
     }
 
-    // PUT /formas-pagamento/{id}/padrao
     public function tornarPadrao(Request $req): void
     {
         $id = $this->idDaRota($req);
@@ -73,7 +62,6 @@ class CartaoController extends Controller
         Response::sucesso(['mensagem' => 'Cartão definido como padrão.']);
     }
 
-    // DELETE /formas-pagamento/{id}
     public function remover(Request $req): void
     {
         $id = $this->idDaRota($req);
@@ -86,7 +74,6 @@ class CartaoController extends Controller
         Response::sucesso(['mensagem' => 'Cartão removido.']);
     }
 
-    // Busca o banco na tabela bins_cartao (ou devolve o genérico)
     private function bancoDoBin(string $bin): array
     {
         $banco = (new BinDAO($this->pdo))->identificar($bin);

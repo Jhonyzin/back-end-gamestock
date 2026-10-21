@@ -1,11 +1,7 @@
 <?php
 
-/**
- * CONTROLLER de autenticação: cadastro, login, logout e "quem sou eu".
- */
 class AuthController extends Controller
 {
-    // POST /auth/cadastro {nome, email, senha, telefone?}
     public function cadastrar(Request $req): void
     {
         Validador::obrigatorios($req->todos(), ['nome' => 'nome', 'email' => 'e-mail', 'senha' => 'senha']);
@@ -24,7 +20,6 @@ class AuthController extends Controller
             throw new ErroApi('Este e-mail já está cadastrado.', 409);
         }
 
-        // A senha é guardada como hash (nunca em texto puro)
         $id = $dao->criar([
             'nome'       => $nome,
             'email'      => $email,
@@ -38,7 +33,6 @@ class AuthController extends Controller
         Response::sucesso(['token' => $token, 'usuario' => $usuario->toArray()], 201);
     }
 
-    // POST /auth/login {email, senha}
     public function login(Request $req): void
     {
         Validador::obrigatorios($req->todos(), ['email' => 'e-mail', 'senha' => 'senha']);
@@ -60,14 +54,12 @@ class AuthController extends Controller
         Response::sucesso(['token' => $token, 'usuario' => Usuario::deLinha($linha)->toArray()]);
     }
 
-    // POST /auth/logout
     public function logout(Request $req): void
     {
         Auth::encerrarSessao($req->token());
         Response::sucesso(['mensagem' => 'Sessão encerrada.']);
     }
 
-    // GET /auth/me
     public function eu(Request $req): void
     {
         Response::sucesso($req->usuario->toArray());

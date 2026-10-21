@@ -1,8 +1,5 @@
 <?php
 
-/**
- * DAO de categorias (gêneros). Toda a lógica está em CadastroSimplesDAO.
- */
 class CategoriaDAO extends CadastroSimplesDAO
 {
     protected string $tabela = 'categorias';

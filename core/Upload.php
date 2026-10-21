@@ -1,10 +1,5 @@
 <?php
 
-/**
- * Upload de imagens com checagem REAL do conteúdo (getimagesize),
- * nome aleatório e extensão definida por nós (nunca pela do usuário).
- * Os arquivos vão para backend/uploads/{pasta}/.
- */
 class Upload
 {
     private const TIPOS = [
@@ -13,7 +8,6 @@ class Upload
         'image/webp' => 'webp',
     ];
 
-    // Salva a imagem e devolve o caminho público (ex.: /uploads/perfis/ab12.jpg)
     public static function imagem(?array $arquivo, string $pasta, int $maxMegabytes): string
     {
         if (!$arquivo || ($arquivo['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
@@ -29,7 +23,6 @@ class Upload
             throw new ErroApi("A imagem deve ter no máximo {$maxMegabytes} MB.", 422);
         }
 
-        // Confere se é mesmo uma imagem (lê o conteúdo do arquivo)
         $info = @getimagesize($arquivo['tmp_name']);
         if ($info === false || !isset(self::TIPOS[$info['mime']])) {
             throw new ErroApi('O arquivo enviado não é uma imagem válida (use JPG, PNG ou WEBP).', 422);
@@ -48,11 +41,10 @@ class Upload
         return "/uploads/{$pasta}/{$nome}";
     }
 
-    // Apaga um arquivo enviado (só se estiver dentro de /uploads/)
     public static function apagar(?string $caminho): void
     {
         if (!$caminho || !str_starts_with($caminho, '/uploads/')) {
-            return;  // URL externa ou /capas/...: não é arquivo nosso
+            return;
         }
         $pastaUploads = realpath(__DIR__ . '/../uploads');
         $arquivo = realpath(__DIR__ . '/..' . $caminho);

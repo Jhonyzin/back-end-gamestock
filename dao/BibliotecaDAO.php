@@ -1,12 +1,12 @@
 <?php
 
-/**
- * DAO da biblioteca: os jogos que cada usuário possui.
- */
 class BibliotecaDAO
 {
-    public function __construct(private PDO $pdo)
+    private $pdo;
+
+    public function __construct($pdo)
     {
+        $this->pdo = $pdo;
     }
 
     public function possui(int $usuarioId, int $produtoId): bool
@@ -29,7 +29,6 @@ class BibliotecaDAO
             ->execute([$usuarioId, $produtoId, $origem]);
     }
 
-    // Jogos do usuário + dados da compra (item, preço pago, método)
     public function listarDoUsuario(int $usuarioId): array
     {
         $stmt = $this->pdo->prepare(
@@ -52,7 +51,6 @@ class BibliotecaDAO
         $stmt->execute([$usuarioId]);
         $linhas = $stmt->fetchAll();
 
-        // categorias de todos os jogos da biblioteca em uma consulta só
         $categorias = [];
         $stmt = $this->pdo->prepare(
             'SELECT pc.produto_id, c.nome FROM produto_categoria pc

@@ -1,21 +1,18 @@
 <?php
 
-/**
- * DAO "pai" para cadastros simples (id, nome, ativo).
- * CategoriaDAO e PlataformaDAO herdam desta classe (exemplo de HERANÇA):
- * só mudam o nome da tabela e da tabela de ligação com os produtos.
- */
 abstract class CadastroSimplesDAO
 {
-    protected string $tabela;          // ex.: categorias
-    protected string $tabelaLigacao;   // ex.: produto_categoria
-    protected string $colunaLigacao;   // ex.: categoria_id
+    protected string $tabela;
+    protected string $tabelaLigacao;
+    protected string $colunaLigacao;
 
-    public function __construct(protected PDO $pdo)
+    protected $pdo;
+
+    public function __construct($pdo)
     {
+        $this->pdo = $pdo;
     }
 
-    // Lista com a quantidade de jogos ativos de cada item
     public function listar(bool $somenteAtivos): array
     {
         $sql = "SELECT t.id, t.nome, t.ativo,
@@ -60,7 +57,6 @@ abstract class CadastroSimplesDAO
         $this->pdo->prepare("UPDATE {$this->tabela} SET nome = ?, ativo = ? WHERE id = ?")->execute([$nome, $ativo, $id]);
     }
 
-    // Quantos jogos (inclusive inativos) usam este item
     public function emUso(int $id): int
     {
         $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM {$this->tabelaLigacao} WHERE {$this->colunaLigacao} = ?");
@@ -73,7 +69,6 @@ abstract class CadastroSimplesDAO
         $this->pdo->prepare("DELETE FROM {$this->tabela} WHERE id = ?")->execute([$id]);
     }
 
-    // Confere se todos os ids existem (usado no formulário de jogos)
     public function todosExistem(array $ids): bool
     {
         if (!$ids) {

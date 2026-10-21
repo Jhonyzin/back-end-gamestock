@@ -1,9 +1,5 @@
 <?php
 
-/**
- * CONTROLLER do CRUD simples de categorias.
- * AdminPlataformaController herda desta classe e só troca o DAO e o nome.
- */
 class AdminCategoriaController extends Controller
 {
     protected function dao(): CadastroSimplesDAO
@@ -16,13 +12,11 @@ class AdminCategoriaController extends Controller
         return 'categoria';
     }
 
-    // GET /admin/categorias
     public function listar(Request $req): void
     {
         Response::sucesso($this->dao()->listar(false));
     }
 
-    // POST /admin/categorias {nome, ativo}
     public function criar(Request $req): void
     {
         [$nome, $ativo] = $this->lerFormulario($req);
@@ -34,7 +28,6 @@ class AdminCategoriaController extends Controller
         Response::sucesso(['id' => $id, 'nome' => $nome, 'ativo' => (bool) $ativo], 201);
     }
 
-    // PUT /admin/categorias/{id} {nome, ativo}
     public function atualizar(Request $req): void
     {
         $id = $this->idDaRota($req);
@@ -50,7 +43,6 @@ class AdminCategoriaController extends Controller
         Response::sucesso(['id' => $id, 'nome' => $nome, 'ativo' => (bool) $ativo]);
     }
 
-    // DELETE /admin/categorias/{id} (só se nenhum jogo usar)
     public function excluir(Request $req): void
     {
         $id = $this->idDaRota($req);

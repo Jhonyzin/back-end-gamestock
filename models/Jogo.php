@@ -1,9 +1,5 @@
 <?php
 
-/**
- * MODEL Jogo: um produto da loja, já com o preço da promoção
- * (vindo da view vw_precos_jogos), nota média e vendas.
- */
 class Jogo
 {
     public int $id;
@@ -27,9 +23,9 @@ class Jogo
     public ?string $selo;
     public ?int $anoLancamento;
     public bool $ativo;
-    public bool $possui = false;     // o usuário logado já tem o jogo?
-    public bool $desejado = false;   // está na lista de desejos?
-    public array $extras = [];       // campos do detalhe (descrição, requisitos, imagens...)
+    public bool $possui = false;
+    public bool $desejado = false;
+    public array $extras = [];
 
     public static function deLinha(array $l): self
     {
@@ -65,7 +61,6 @@ class Jogo
         return $j;
     }
 
-    // Preenche os campos que só aparecem na página do jogo
     public function adicionarDetalhes(array $l, array $imagens, array $videos): void
     {
         $this->extras = [

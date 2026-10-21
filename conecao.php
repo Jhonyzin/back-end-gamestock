@@ -1,8 +1,5 @@
 <?php
 
-// Teste rápido de conexão: abra no navegador
-// http://localhost/gamestock/backend/conecao.php
-
 require_once 'core/ErroApi.php';
 require_once 'config/Bancodados.php';
 
@@ -14,7 +11,6 @@ try {
     $pdo = $banco->conectar();
 
     echo "Conexão realizada com sucesso!";
-
 } catch (ErroApi $e) {
     http_response_code(500);
     echo $e->getMessage();

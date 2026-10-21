@@ -1,24 +1,18 @@
 <?php
 
-/**
- * CONTROLLER do CRUD de jogos no painel admin, com imagens e trailer.
- */
 class AdminJogoController extends Controller
 {
-    // GET /admin/jogos?busca=
     public function listar(Request $req): void
     {
         $jogos = (new JogoDAO($this->pdo))->listarAdmin((string) $req->query('busca', ''));
         Response::sucesso(array_map(fn (Jogo $j) => $j->toArray(), $jogos));
     }
 
-    // GET /admin/jogos/{id} (todos os dados para o formulário)
     public function mostrar(Request $req): void
     {
         Response::sucesso($this->dadosCompletos($this->idDaRota($req)));
     }
 
-    // POST /admin/jogos
     public function criar(Request $req): void
     {
         $dao = new JogoDAO($this->pdo);
@@ -39,7 +33,6 @@ class AdminJogoController extends Controller
         Response::sucesso($this->dadosCompletos($id), 201);
     }
 
-    // PUT /admin/jogos/{id}
     public function atualizar(Request $req): void
     {
         $id = $this->idDaRota($req);
@@ -65,7 +58,6 @@ class AdminJogoController extends Controller
         Response::sucesso($this->dadosCompletos($id));
     }
 
-    // DELETE /admin/jogos/{id} (soft delete)
     public function excluir(Request $req): void
     {
         $id = $this->idDaRota($req);
@@ -77,7 +69,6 @@ class AdminJogoController extends Controller
         Response::sucesso(['mensagem' => 'Jogo excluído.']);
     }
 
-    // POST /admin/jogos/{id}/imagens (multipart "arquivo" OU campo "url"; "tipo"; "principal")
     public function adicionarImagem(Request $req): void
     {
         $id = $this->idDaRota($req);
@@ -98,7 +89,7 @@ class AdminJogoController extends Controller
         }
 
         $midias = new MidiaDAO($this->pdo);
-        // capa nova vira a principal (a menos que venha principal=0)
+
         $principal = $tipo === 'CAPA' ? Validador::booleano($req->input('principal', 1)) : 0;
         if ($principal) {
             $midias->desmarcarCapasPrincipais($id);
@@ -108,7 +99,6 @@ class AdminJogoController extends Controller
         Response::sucesso($midias->imagens($id), 201);
     }
 
-    // PUT /admin/imagens/{id} {ordem, principal}
     public function atualizarImagem(Request $req): void
     {
         $midias = new MidiaDAO($this->pdo);
@@ -126,7 +116,6 @@ class AdminJogoController extends Controller
         Response::sucesso($midias->imagens((int) $imagem['produto_id']));
     }
 
-    // DELETE /admin/imagens/{id}
     public function removerImagem(Request $req): void
     {
         $midias = new MidiaDAO($this->pdo);
@@ -140,7 +129,6 @@ class AdminJogoController extends Controller
         Response::sucesso($midias->imagens((int) $imagem['produto_id']));
     }
 
-    // POST /admin/jogos/{id}/videos {url, titulo?}
     public function adicionarVideo(Request $req): void
     {
         $id = $this->idDaRota($req);
@@ -158,7 +146,6 @@ class AdminJogoController extends Controller
         Response::sucesso($midias->videos($id), 201);
     }
 
-    // DELETE /admin/videos/{id}
     public function removerVideo(Request $req): void
     {
         if (!(new MidiaDAO($this->pdo))->removerVideo($this->idDaRota($req))) {
@@ -167,7 +154,6 @@ class AdminJogoController extends Controller
         Response::sucesso(['mensagem' => 'Vídeo removido.']);
     }
 
-    // GET /admin/marcas e /admin/editoras (selects do formulário)
     public function marcas(Request $req): void
     {
         Response::sucesso((new EmpresaDAO($this->pdo))->listarMarcas());
@@ -178,9 +164,6 @@ class AdminJogoController extends Controller
         Response::sucesso((new EmpresaDAO($this->pdo))->listarEditoras());
     }
 
-    // ---------- auxiliares ----------
-
-    // Lê e valida TODOS os campos do formulário de jogo
     private function lerFormulario(Request $req): array
     {
         $d = $req->todos();
@@ -241,7 +224,6 @@ class AdminJogoController extends Controller
         ];
     }
 
-    // Jogo completo (inclusive inativo) + ids para o formulário
     private function dadosCompletos(int $id): array
     {
         $dao = new JogoDAO($this->pdo);
@@ -265,7 +247,6 @@ class AdminJogoController extends Controller
         ];
     }
 
-    // URL externa (https://...) ou caminho de /capas/ do front
     private function validarUrlImagem(string $url): string
     {
         if ($url === '') {
@@ -277,7 +258,6 @@ class AdminJogoController extends Controller
         return $url;
     }
 
-    // "Dragon's Dogma 2" -> "dragon-s-dogma-2" (único na tabela)
     private function gerarSlug(JogoDAO $dao, string $nome, int $ignorarId = 0): string
     {
         $acentos = ['á'=>'a','à'=>'a','â'=>'a','ã'=>'a','ä'=>'a','é'=>'e','è'=>'e','ê'=>'e','ë'=>'e','í'=>'i','ì'=>'i','î'=>'i','ï'=>'i',

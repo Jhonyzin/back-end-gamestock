@@ -1,13 +1,12 @@
 <?php
 
-/**
- * DAO de usuários: todo o SQL da tabela "usuarios".
- * Sempre com prepared statements (os "?" evitam SQL Injection).
- */
 class UsuarioDAO
 {
-    public function __construct(private PDO $pdo)
+    private $pdo;
+
+    public function __construct($pdo)
     {
+        $this->pdo = $pdo;
     }
 
     public function buscarPorId(int $id): ?array
@@ -17,7 +16,6 @@ class UsuarioDAO
         return $stmt->fetch() ?: null;
     }
 
-    // Inclui contas excluídas/desativadas (o login decide a mensagem)
     public function buscarPorEmail(string $email): ?array
     {
         $stmt = $this->pdo->prepare('SELECT * FROM usuarios WHERE email = ?');
@@ -69,8 +67,6 @@ class UsuarioDAO
         $stmt->execute([$caminho, $id]);
     }
 
-    // ---------- Admin ----------
-
     public function listar(string $busca = ''): array
     {
         $sql = 'SELECT u.*,
@@ -96,7 +92,6 @@ class UsuarioDAO
         $stmt->execute([$d['nome'], $d['nome_exibicao'], $d['email'], $d['telefone'], $d['tipo_usuario'], $d['ativo'], $id]);
     }
 
-    // Exclusão lógica (soft delete): mantém o histórico de pedidos
     public function excluir(int $id): void
     {
         $stmt = $this->pdo->prepare('UPDATE usuarios SET deleted_at = NOW(), ativo = 0 WHERE id = ?');

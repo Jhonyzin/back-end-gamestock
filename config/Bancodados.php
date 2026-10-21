@@ -2,13 +2,6 @@
 
 require_once __DIR__ . '/Ambiente.php';
 
-/**
- * Conexão com o banco usando PDO.
- * Funciona com PostgreSQL (Render / pgAdmin) e com MySQL (XAMPP):
- * escolha com DB_DRIVER=pgsql ou DB_DRIVER=mysql.
- * As credenciais NÃO ficam no código: vêm do .env (XAMPP)
- * ou das variáveis de ambiente (Render). Ver .env.example.
- */
 class Bancodados
 {
     private string $driver;
@@ -18,7 +11,6 @@ class Bancodados
     private string $username;
     private string $password;
 
-    // Uma única conexão por requisição (todos os DAOs usam a mesma)
     private static ?PDO $conexaoAtual = null;
 
     public function __construct()
@@ -30,8 +22,6 @@ class Bancodados
         $this->username = Ambiente::ler('DB_USER');
         $this->password = Ambiente::ler('DB_PASS');
 
-        // No Render dá para colar só a "Internal Database URL":
-        // postgresql://usuario:senha@host:5432/banco
         $url = Ambiente::ler('DATABASE_URL');
         if ($url !== '') {
             $partes = parse_url($url);
@@ -44,13 +34,14 @@ class Bancodados
         }
     }
 
+    // conexao com o banco
     public function conectar(): PDO
     {
         $opcoes = [];
 
         if ($this->driver === 'pgsql') {
             $dsn = "pgsql:host={$this->host};port={$this->port};dbname={$this->database}";
-            // A URL externa do Render exige SSL (a interna não)
+
             if (Ambiente::booleano('DB_SSL')) {
                 $dsn .= ';sslmode=require';
             }
@@ -68,7 +59,6 @@ class Bancodados
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
-            // NOW() do banco no horário de Brasília (igual ao PHP)
             if ($this->driver === 'pgsql') {
                 $pdo->exec("SET TIME ZONE 'America/Sao_Paulo'");
             } else {
@@ -76,9 +66,7 @@ class Bancodados
             }
 
             return $pdo;
-
         } catch (PDOException $e) {
-            // A mensagem técnica só aparece com APP_DEBUG=true
             $mensagem = 'Não foi possível conectar ao banco.';
             if (Ambiente::booleano('APP_DEBUG')) {
                 $mensagem .= ' Detalhe: ' . $e->getMessage();
@@ -87,7 +75,6 @@ class Bancodados
         }
     }
 
-    // Atalho usado pelos controllers: conecta só na primeira vez
     public static function conexao(): PDO
     {
         if (self::$conexaoAtual === null) {

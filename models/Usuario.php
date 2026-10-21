@@ -1,9 +1,5 @@
 <?php
 
-/**
- * MODEL Usuario: representa uma linha da tabela "usuarios".
- * O toArray() NUNCA devolve o senha_hash.
- */
 class Usuario
 {
     public int $id;
@@ -18,7 +14,6 @@ class Usuario
     public bool $ativo;
     public ?string $dataCadastro;
 
-    // Cria o objeto a partir da linha vinda do banco
     public static function deLinha(array $linha): self
     {
         $u = new self();
@@ -41,7 +36,6 @@ class Usuario
         return $this->tipoUsuario === 'ADMINISTRADOR';
     }
 
-    // Nome mostrado na tela (nome de exibição ou o nome completo)
     public function nomeVisivel(): string
     {
         return $this->nomeExibicao ?: $this->nome;

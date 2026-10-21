@@ -1,16 +1,10 @@
 <?php
 
-/**
- * Autenticação por token (Bearer).
- * - No login geramos um token aleatório e guardamos só o SHA-256 dele.
- * - O navegador envia o token em "Authorization: Bearer <token>".
- * - A sessão vale 7 dias; o logout apaga a sessão.
- */
 class Auth
 {
     public const DIAS_VALIDADE = 7;
 
-    // Cria a sessão e devolve o token "puro" (só o navegador o conhece)
+    // cria o token do login
     public static function criarSessao(int $usuarioId): string
     {
         $token = bin2hex(random_bytes(32));
@@ -27,7 +21,6 @@ class Auth
         }
     }
 
-    // Usuário do token (ou null se não houver login válido)
     public static function usuarioOpcional(Request $req): ?Usuario
     {
         $token = $req->token();

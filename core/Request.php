@@ -1,14 +1,11 @@
 <?php
 
-/**
- * Representa a requisição HTTP: método, caminho, corpo, arquivos e token.
- */
 class Request
 {
     public string $metodo;
     public string $caminho;
-    public array $params = [];         // parâmetros da rota, ex.: {id}
-    public ?Usuario $usuario = null;   // preenchido pelo Router quando há login
+    public array $params = [];
+    public ?Usuario $usuario = null;
     private array $corpo;
 
     public function __construct()
@@ -18,9 +15,6 @@ class Request
         $this->corpo   = $this->lerCorpo();
     }
 
-    // Remove a pasta do projeto e o prefixo /api do endereço.
-    // XAMPP:  /gamestock/backend/api/jogos  -> /jogos
-    // Render: /api/jogos                    -> /jogos
     private function descobrirCaminho(): string
     {
         $caminho = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
@@ -30,7 +24,7 @@ class Request
         $pasta  = rtrim(str_replace('\\', '/', dirname($script)), '/');
 
         if ($script !== '' && str_starts_with($caminho, $script)) {
-            $caminho = substr($caminho, strlen($script));      // .../index.php/api/jogos
+            $caminho = substr($caminho, strlen($script));
         } elseif ($pasta !== '' && str_starts_with($caminho, $pasta)) {
             $caminho = substr($caminho, strlen($pasta));
         }
@@ -43,7 +37,6 @@ class Request
         return $caminho;
     }
 
-    // Corpo em JSON (fetch) ou formulário multipart (upload)
     private function lerCorpo(): array
     {
         $tipo = $_SERVER['CONTENT_TYPE'] ?? '';
@@ -54,20 +47,17 @@ class Request
         return $_POST;
     }
 
-    // Parâmetro da rota (ex.: id de /jogos/{id})
     public function param(string $nome): string
     {
         return $this->params[$nome] ?? '';
     }
 
-    // Parâmetro da URL (?busca=...)
     public function query(string $nome, mixed $padrao = null): mixed
     {
         $valor = $_GET[$nome] ?? $padrao;
         return is_string($valor) ? trim($valor) : $valor;
     }
 
-    // Campo do corpo da requisição
     public function input(string $nome, mixed $padrao = null): mixed
     {
         $valor = $this->corpo[$nome] ?? $padrao;
@@ -84,7 +74,6 @@ class Request
         return $_FILES[$nome] ?? null;
     }
 
-    // Lê "Authorization: Bearer <token>"
     public function token(): ?string
     {
         $cabecalho = $_SERVER['HTTP_AUTHORIZATION']

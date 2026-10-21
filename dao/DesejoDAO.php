@@ -1,15 +1,14 @@
 <?php
 
-/**
- * DAO da lista de desejos (tabela "wishlist").
- */
 class DesejoDAO
 {
-    public function __construct(private PDO $pdo)
+    private $pdo;
+
+    public function __construct($pdo)
     {
+        $this->pdo = $pdo;
     }
 
-    // ids dos jogos desejados, do mais recente para o mais antigo
     public function idsDoUsuario(int $usuarioId): array
     {
         $stmt = $this->pdo->prepare('SELECT produto_id FROM wishlist WHERE usuario_id = ? ORDER BY data_adicionado DESC, id DESC');
@@ -17,7 +16,6 @@ class DesejoDAO
         return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
     }
 
-    // Se já estiver na lista, não faz nada
     public function adicionar(int $usuarioId, int $produtoId): void
     {
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM wishlist WHERE usuario_id = ? AND produto_id = ?');
