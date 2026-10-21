@@ -15,16 +15,20 @@ class Bancodados
 
     public function __construct()
     {
-        $this->driver   = Ambiente::ler('DB_DRIVER', 'mysql');
+        $this->driver   = Ambiente::ler('DB_DRIVER', 'pgsql');
         $this->host     = Ambiente::ler('DB_HOST', 'localhost');
         $this->port     = Ambiente::ler('DB_PORT', $this->driver === 'pgsql' ? '5432' : '3306');
         $this->database = Ambiente::ler('DB_NAME');
         $this->username = Ambiente::ler('DB_USER');
         $this->password = Ambiente::ler('DB_PASS');
 
-        $url = Ambiente::ler('DATABASE_URL');
+        $url = trim(Ambiente::ler('DATABASE_URL'), " 	
+\"'");
         if ($url !== '') {
             $partes = parse_url($url);
+            if (!isset($partes['host'])) {
+                throw new ErroApi('DATABASE_URL invalida. Use postgresql://usuario:senha@host:5432/banco', 500);
+            }
             $this->driver   = 'pgsql';
             $this->host     = $partes['host'] ?? $this->host;
             $this->port     = (string) ($partes['port'] ?? '5432');
@@ -42,7 +46,8 @@ class Bancodados
         if ($this->driver === 'pgsql') {
             $dsn = "pgsql:host={$this->host};port={$this->port};dbname={$this->database}";
 
-            if (Ambiente::booleano('DB_SSL')) {
+            // url externa do render precisa de ssl
+            if (Ambiente::booleano('DB_SSL') || str_contains($this->host, '.render.com')) {
                 $dsn .= ';sslmode=require';
             }
         } else {
@@ -67,6 +72,7 @@ class Bancodados
 
             return $pdo;
         } catch (PDOException $e) {
+            error_log('Erro ao conectar no banco: ' . $e->getMessage());
             $mensagem = 'Não foi possível conectar ao banco.';
             if (Ambiente::booleano('APP_DEBUG')) {
                 $mensagem .= ' Detalhe: ' . $e->getMessage();
